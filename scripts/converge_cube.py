@@ -6,27 +6,21 @@ import matplotlib.pyplot as plt
 import math
 import time
 
-# =========================
-# LOAD BASE MASK (N=25)
-# =========================
-data = np.load(r"C:\Users\nihal\Desktop\Research\results\cube.npz")
+
+data = np.load(r"cube.npz")
 mask25 = data[list(data.files)[0]].astype(bool)
 
-# =========================
-# RESAMPLING FUNCTION
-# =========================
+
 def resample_mask(mask, N_new):
     oldN = mask.shape[0]
     factor = (N_new - 1) / (oldN - 1)
     new_mask = ndi.zoom(mask.astype(float), factor, order=0)
     return new_mask.astype(bool)
 
-# =========================
-# BUILD LAPLACIAN
-# =========================
+
 def build_laplacian(mask):
     N = mask.shape[0]
-    h = 1.0 / (N - 1)
+    h = 1 / (N - 1)
 
     coords = np.argwhere(mask)
     index_map = -np.ones(mask.shape, dtype=int)
