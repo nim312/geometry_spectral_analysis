@@ -19,8 +19,7 @@ FILES = [
     ("cube", 0.02, r"results_20\cube_2.npz"),
     ("cube", 0.05, r"results_20\cube_3.npz"),
     ("cube", 0.08, r"results_20\cube_4.npz"),
-    ("cube", 0.10, r"results_20\cube_5.npz"),
-]
+    ("cube", 0.10, r"results_20\cube_5.npz")]
 
 OUT_CSV = r"descriptors_20.csv"
 
@@ -38,25 +37,21 @@ def build_laplacian(mask: np.ndarray, h: float) -> sp.csr_matrix:
 
     for idx, (i, j, k) in enumerate(coords):
         A[idx, idx] = 6.0 / (h * h)
-
         for di, dj, dk in [
             (-1, 0, 0), (1, 0, 0),
             (0, -1, 0), (0, 1, 0),
-            (0, 0, -1), (0, 0, 1)
-        ]:
+            (0, 0, -1), (0, 0, 1)]:
             ni, nj, nk = i + di, j + dj, k + dk
 
             if 0 <= ni < nx and 0 <= nj < ny and 0 <= nk < nz:
                 if mask[ni, nj, nk]:
                     jdx = index_map[ni, nj, nk]
-                    A[idx, jdx] = -1.0 / (h * h)
-
+                    A[idx, jdx] = -1 / (h * h)
     return A.tocsr()
 
 def compute_lambda1(mask: np.ndarray) -> float:
     N = mask.shape[0]
     h = 1 / (N - 1)
-
     A = build_laplacian(mask, h)
     vals = spla.eigsh(A, k=1, which="SM", return_eigenvectors=False, tol=1e-10)
     return float(vals[0])
@@ -68,16 +63,15 @@ baseline = {}
 for shape, amp, path in FILES:
     if not os.path.exists(path):
         raise FileNotFoundError(f"Missing file: {path}")
-
     data = np.load(path)
     if "mask" not in data:
-        raise ValueError(f"{path} does not contain a 'mask' array")
+        raise ValueError(f"{path} does not contain a mask array")
 
     mask = data["mask"].astype(bool)
 
     print(f"Processing {shape}, amplitude={amp:.2f} ...")
     lambda1 = compute_lambda1(mask)
-    print(f"  lambda1 = {lambda1:.12f}")
+    print(f" lambda1 = {lambda1:.12f}")
 
     rows.append({
         "shape": shape,
