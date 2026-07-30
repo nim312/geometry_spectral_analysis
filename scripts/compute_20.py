@@ -5,32 +5,26 @@ import csv
 import gc
 import os
 
-# =========================
-# INPUT MASE FILES
-# Update these paths to match your N=20 voxel files.
-# Keep the same naming pattern you already used.
-# =========================
+# Voxel files with resolution 20
 FILES = [
-    ("sphere",    0.00, r"C:\Users\nihal\Desktop\Research\results_20\sphere.npz"),
-    ("sphere",    0.01, r"C:\Users\nihal\Desktop\Research\results_20\sphere_1.npz"),
-    ("sphere",    0.02, r"C:\Users\nihal\Desktop\Research\results_20\sphere_2.npz"),
-    ("sphere",    0.05, r"C:\Users\nihal\Desktop\Research\results_20\sphere_3.npz"),
-    ("sphere",    0.08, r"C:\Users\nihal\Desktop\Research\results_20\sphere_4.npz"),
-    ("sphere",    0.10, r"C:\Users\nihal\Desktop\Research\results_20\sphere_5.npz"),
+    ("sphere", 0.00, r"results_20\sphere.npz"),
+    ("sphere", 0.01, r"results_20\sphere_1.npz"),
+    ("sphere", 0.02, r"results_20\sphere_2.npz"),
+    ("sphere", 0.05, r"results_20\sphere_3.npz"),
+    ("sphere", 0.08, r"results_20\sphere_4.npz"),
+    ("sphere", 0.10, r"results_20\sphere_5.npz"),
 
-    ("cube",      0.00, r"C:\Users\nihal\Desktop\Research\results_20\cube.npz"),
-    ("cube",      0.01, r"C:\Users\nihal\Desktop\Research\results_20\cube_1.npz"),
-    ("cube",      0.02, r"C:\Users\nihal\Desktop\Research\results_20\cube_2.npz"),
-    ("cube",      0.05, r"C:\Users\nihal\Desktop\Research\results_20\cube_3.npz"),
-    ("cube",      0.08, r"C:\Users\nihal\Desktop\Research\results_20\cube_4.npz"),
-    ("cube",      0.10, r"C:\Users\nihal\Desktop\Research\results_20\cube_5.npz"),
+    ("cube", 0.00, r"results_20\cube.npz"),
+    ("cube", 0.01, r"results_20\cube_1.npz"),
+    ("cube", 0.02, r"results_20\cube_2.npz"),
+    ("cube", 0.05, r"results_20\cube_3.npz"),
+    ("cube", 0.08, r"results_20\cube_4.npz"),
+    ("cube", 0.10, r"results_20\cube_5.npz"),
 ]
 
-OUT_CSV = r"C:\Users\nihal\Desktop\Research\results\descriptors_20.csv"
+OUT_CSV = r"descriptors_20.csv"
 
-# =========================
-# DISCRETE LAPLACIAN
-# =========================
+# Discrete Laplacian
 def build_laplacian(mask: np.ndarray, h: float) -> sp.csr_matrix:
     nx, ny, nz = mask.shape
     index_map = -np.ones(mask.shape, dtype=np.int32)
@@ -61,15 +55,13 @@ def build_laplacian(mask: np.ndarray, h: float) -> sp.csr_matrix:
 
 def compute_lambda1(mask: np.ndarray) -> float:
     N = mask.shape[0]
-    h = 1.0 / (N - 1)
+    h = 1 / (N - 1)
 
     A = build_laplacian(mask, h)
     vals = spla.eigsh(A, k=1, which="SM", return_eigenvectors=False, tol=1e-10)
     return float(vals[0])
 
-# =========================
-# RUN
-# =========================
+
 rows = []
 baseline = {}
 
@@ -99,34 +91,30 @@ for shape, amp, path in FILES:
     del data, mask
     gc.collect()
 
-# =========================
-# COMPUTE DELTAS
-# =========================
+
 for r in rows:
     shape = r["shape"]
     if shape not in baseline:
         raise ValueError(f"No baseline amplitude 0.0 found for shape={shape}")
 
     r["delta_lambda1"] = r["lambda1"] - baseline[shape]
-    r["delta_E"] = ""
+    
 
-# =========================
-# SAVE CSV
-# =========================
+
+# Save CSV
 os.makedirs(os.path.dirname(OUT_CSV), exist_ok=True)
 
 rows = sorted(rows, key=lambda x: (x["shape"], x["amplitude"]))
 
 with open(OUT_CSV, "w", newline="") as f:
     writer = csv.writer(f)
-    writer.writerow(["shape", "amplitude", "lambda1", "delta_lambda1", "delta_E"])
+    writer.writerow(["shape", "amplitude", "lambda1", "delta_lambda1"])
     for r in rows:
         writer.writerow([
             r["shape"],
             r["amplitude"],
             f'{r["lambda1"]:.15f}',
-            f'{r["delta_lambda1"]:.15f}',
-            r["delta_E"]
+            f'{r["delta_lambda1"]:.15f}'
         ])
 
 print(f"\nSaved -> {OUT_CSV}")
