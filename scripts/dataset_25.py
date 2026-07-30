@@ -1,148 +1,135 @@
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
-import os
-import glob
 import csv
-import time
+import gc
+import os
 
-# =========================
-# PARAMETERS
-# =========================
-K = 80  # number of modes to compute
-RESULTS_DIR = r"C:\Users\nihal\Desktop\Research\results"
-OUTPUT_FILE = os.path.join(RESULTS_DIR, "descriptors.csv")
+# Voxel files with resolution 25
+FILES = [
+    ("sphere", 0.00, r"sphere.npz"),
+    ("sphere", 0.01, r"sphere_1.npz"),
+    ("sphere", 0.02, r"sphere_2.npz"),
+    ("sphere", 0.05, r"sphere_3.npz"),
+    ("sphere", 0.08, r"sphere_4.npz"),
+    ("sphere", 0.10, r"sphere_5.npz"),
+    
+    ("cube", 0.00, r"cube.npz"),
+    ("cube", 0.01, r"cube_1.npz"),
+    ("cube", 0.02, r"cube_2.npz"),
+    ("cube", 0.05, r"cube_3.npz"),
+    ("cube", 0.08, r"cube_4.npz"),
+    ("cube", 0.10, r"cube_5.npz"), 
 
-# amplitude mapping for files
-amplitude_map = {1: 0.01, 2: 0.02, 3: 0.05, 4: 0.08, 5: 0.1}
+    ("cylinder", 0.00, r"cylinder.npz"),
+    ("cylinder", 0.01, r"cylinder_1.npz"),
+    ("cylinder", 0.02, r"cylinder_2.npz"),
+    ("cylinder", 0.05, r"cylinder_3.npz"),
+    ("cylinder", 0.08, r"cylinder_4.npz"),
+    ("cylinder", 0.10, r"cylinder_5.npz"), 
 
-# =========================
-# LOAD VOXEL MASK
-# =========================
-def load_mask(path):
-    data = np.load(path)
-    for key in data.files:
-        arr = data[key]
-        if arr.ndim == 3:
-            return arr.astype(bool)
-    raise ValueError(f"No valid mask in {path}")
+    ("ellipse", 0.00, r"ellipse.npz"),
+    ("ellipse", 0.01, r"ellipse_1.npz"),
+    ("ellipse", 0.02, r"ellipse_2.npz"),
+    ("ellipse", 0.05, r"ellipse_3.npz"),
+    ("ellipse", 0.08, r"ellipse_4.npz"),
+    ("ellipse", 0.10, r"ellipse_5.npz"), 
 
-# =========================
-# BUILD MASKED LAPLACIAN
-# =========================
-def build_laplacian(mask):
-    N = mask.shape[0]
-    h = 1.0 / (N - 1)
+    ("rectangle", 0.00, r"rectangle.npz"),
+    ("rectangle", 0.01, r"rectangle_1.npz"),
+    ("rectangle", 0.02, r"rectangle_2.npz"),
+    ("rectangle", 0.05, r"rectangle_3.npz"),
+    ("rectangle", 0.08, r"rectangle_4.npz"),
+    ("rectangle", 0.10, r"rectangle_5.npz")
+]
 
+OUT_CSV = r"descriptors_25.csv"
+# Discrete Laplacian
+def build_laplacian(mask: np.ndarray, h: float) -> sp.csr_matrix:
+    nx, ny, nz = mask.shape
+    index_map = -np.ones(mask.shape, dtype=np.int32)
     coords = np.argwhere(mask)
-    index_map = -np.ones(mask.shape, dtype=int)
+
     for idx, (i, j, k) in enumerate(coords):
         index_map[i, j, k] = idx
 
-    rows, cols, data_vals = [], [], []
+    n = len(coords)
+    A = sp.lil_matrix((n, n), dtype=np.float64)
 
-    diag = 6.0 / h**2
-    off = -1.0 / h**2
-    neighbors = [(1,0,0),(-1,0,0),(0,1,0),(0,-1,0),(0,0,1),(0,0,-1)]
+    for idx, (i, j, k) in enumerate(coords):
+        A[idx, idx] = 6.0 / (h * h)
+        for di, dj, dk in [
+            (-1, 0, 0), (1, 0, 0),
+            (0, -1, 0), (0, 1, 0),
+            (0, 0, -1), (0, 0, 1)]:
+            ni, nj, nk = i + di, j + dj, k + dk
 
-    for idx, (i,j,k) in enumerate(coords):
-        rows.append(idx)
-        cols.append(idx)
-        data_vals.append(diag)
-        for di,dj,dk in neighbors:
-            ni,nj,nk = i+di, j+dj, k+dk
-            if 0 <= ni < N and 0 <= nj < N and 0 <= nk < N:
-                if mask[ni,nj,nk]:
-                    rows.append(idx)
-                    cols.append(index_map[ni,nj,nk])
-                    data_vals.append(off)
+            if 0 <= ni < nx and 0 <= nj < ny and 0 <= nk < nz:
+                if mask[ni, nj, nk]:
+                    jdx = index_map[ni, nj, nk]
+                    A[idx, jdx] = -1 / (h * h)
+    return A.tocsr()
 
-    return sp.csr_matrix((data_vals, (rows, cols)))
+def compute_lambda1(mask: np.ndarray) -> float:
+    N = mask.shape[0]
+    h = 1 / (N - 1)
+    A = build_laplacian(mask, h)
+    vals = spla.eigsh(A, k=1, which="SM", return_eigenvectors=False, tol=1e-10)
+    return float(vals[0])
 
-# =========================
-# COMPUTE EIGENVALUES
-# =========================
-def compute_eigs(L, K):
-    vals, _ = spla.eigsh(L, k=K, which='SM', tol=1e-8)
-    return np.sort(vals)
 
-# =========================
-# COMPUTE DELTA ENERGY
-# =========================
-def delta_energy(vals_base, vals):
-    return 0.5 * np.sum(np.sqrt(vals) - np.sqrt(vals_base))
-
-# =========================
-# FIND FILES
-# =========================
-files = glob.glob(os.path.join(RESULTS_DIR, "*.npz"))
-
-# Group files by shape
-shape_groups = {}
-for f in files:
-    name = os.path.basename(f)
-    parts = name.replace(".npz","").split("_")
-    shape = parts[0]  # cube, sphere, etc.
-    shape_groups.setdefault(shape, []).append(f)
-
-# =========================
-# PREP OUTPUT
-# =========================
-os.makedirs(RESULTS_DIR, exist_ok=True)
-header = ["shape", "amplitude", "lambda1", "delta_lambda1", "delta_E"]
 rows = []
+baseline = {}
 
-# =========================
-# MAIN LOOP
-# =========================
-for shape, flist in shape_groups.items():
-    print(f"\nProcessing shape: {shape}")
+for shape, amp, path in FILES:
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Missing file: {path}")
+    data = np.load(path)
+    if "mask" not in data:
+        raise ValueError(f"{path} does not contain a mask array")
 
-    # Base file: no number
-    base_file = None
-    for f in flist:
-        if f.endswith(f"{shape}.npz"):
-            base_file = f
-            break
-    if base_file is None:
-        print(f"No base file for {shape}, skipping")
-        continue
+    mask = data["mask"].astype(bool)
 
-    # Load base
-    mask_base = load_mask(base_file)
-    L_base = build_laplacian(mask_base)
-    vals_base = compute_eigs(L_base, K)
-    lambda1_base = vals_base[0]
+    print(f"Processing {shape}, amplitude={amp:.2f} ...")
+    lambda1 = compute_lambda1(mask)
+    print(f" lambda1 = {lambda1:.12f}")
 
-    # Process each file
-    for f in flist:
-        name = os.path.basename(f)
-        if f == base_file:
-            amp = 0.0
-        else:
-            try:
-                idx = int(name.split("_")[-1].replace(".npz",""))
-                amp = amplitude_map.get(idx, 0.0)
-            except:
-                amp = 0.0
+    rows.append({
+        "shape": shape,
+        "amplitude": amp,
+        "lambda1": lambda1,
+    })
 
-        print(f"  Amplitude: {amp}")
-        mask = load_mask(f)
-        L = build_laplacian(mask)
-        vals = compute_eigs(L, K)
+    if amp == 0.0:
+        baseline[shape] = lambda1
 
-        lambda1 = vals[0]
-        d_lambda1 = lambda1 - lambda1_base
-        dE = delta_energy(vals_base, vals)
+    del data, mask
+    gc.collect()
 
-        rows.append([shape, amp, lambda1, d_lambda1, dE])
 
-# =========================
-# SAVE CSV
-# =========================
-with open(OUTPUT_FILE, "w", newline="") as f:
+for r in rows:
+    shape = r["shape"]
+    if shape not in baseline:
+        raise ValueError(f"No baseline amplitude 0.0 found for shape={shape}")
+
+    r["delta_lambda1"] = r["lambda1"] - baseline[shape]
+    
+
+
+# Save CSV
+os.makedirs(os.path.dirname(OUT_CSV), exist_ok=True)
+
+rows = sorted(rows, key=lambda x: (x["shape"], x["amplitude"]))
+
+with open(OUT_CSV, "w", newline="") as f:
     writer = csv.writer(f)
-    writer.writerow(header)
-    writer.writerows(rows)
+    writer.writerow(["shape", "amplitude", "lambda1", "delta_lambda1"])
+    for r in rows:
+        writer.writerow([
+            r["shape"],
+            r["amplitude"],
+            f'{r["lambda1"]:.15f}',
+            f'{r["delta_lambda1"]:.15f}'
+        ])
 
-print(f"\nDataset saved to: {OUTPUT_FILE}")
+print(f"\nSaved -> {OUT_CSV}")
