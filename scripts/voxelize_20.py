@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STL_FOLDER = os.path.join(BASE_DIR, "..", "stl")
-RESULTS_FOLDER = os.path.join(BASE_DIR, "..", "results")
+RESULTS_FOLDER = os.path.join(BASE_DIR, "..", "results_20")
 FIGS_FOLDER = os.path.join(BASE_DIR, "..", "figs")
 
 N = 20  #resolution
