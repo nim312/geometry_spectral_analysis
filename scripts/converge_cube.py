@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import math
 import time
 
-
 data = np.load(r"cube.npz")
 mask25 = data[list(data.files)[0]].astype(bool)
 
@@ -21,24 +20,19 @@ def build_laplacian(mask):
     h = 1 / (N - 1)
     coords = np.argwhere(mask)
     index_map = -np.ones(mask.shape, dtype=int)
-
     for idx, (i,j,k) in enumerate(coords):
         index_map[i,j,k] = idx
     rows, cols, data_vals = [], [], []
-
     diag = 6/ h**2
     off = -1 / h**2
-
     neighbors = [
         (1,0,0),(-1,0,0),
         (0,1,0),(0,-1,0),
         (0,0,1),(0,0,-1)]
-
     for idx, (i,j,k) in enumerate(coords):
         rows.append(idx)
         cols.append(idx)
         data_vals.append(diag)
-
         for di,dj,dk in neighbors:
             ni,nj,nk = i+di, j+dj, k+dk
             if 0 <= ni < N and 0 <= nj < N and 0 <= nk < N:
@@ -46,11 +40,9 @@ def build_laplacian(mask):
                     rows.append(idx)
                     cols.append(index_map[ni,nj,nk])
                     data_vals.append(off)
-
     L = sp.csr_matrix((data_vals, (rows, cols)))
     return L
-
-
+    
 def compute_lambda1(mask):
     L = build_laplacian(mask)
     vals, _ = spla.eigsh(L, k=3, which='SM', tol=1e-8)
@@ -63,17 +55,13 @@ errors = []
 lambdas = []
 
 expected = 3 * (math.pi**2)
-
 for N in Ns:
     print(f"\nRunning N = {N}")
-
     if N == 25:
         mask = mask25
     else:
         mask = resample_mask(mask25, N)
-
     h = 1 / (N - 1)
-
     start = time.time()
     lam = compute_lambda1(mask)
     end = time.time()
@@ -89,19 +77,15 @@ hs = np.array(hs)
 errors = np.array(errors)
 coeffs = np.polyfit(np.log(hs), np.log(errors), 1)
 p = coeffs[0]
-
 print("\nEstimated convergence order p =", p)
-
 
 
 plt.figure()
 plt.loglog(hs, errors, 'o-', label='Error')
 plt.loglog(hs, np.exp(coeffs[1]) * hs**p, '--', label=f'Fit (p={p:.2f})')
-
 plt.xlabel("h")
 plt.ylabel("Error")
 plt.legend()
 plt.title("Grid Convergence (Cube λ₁)")
-
 plt.savefig(r"convergence.png", dpi=300)
 plt.show()
