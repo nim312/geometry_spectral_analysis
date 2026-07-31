@@ -79,7 +79,6 @@ coeffs = np.polyfit(np.log(hs), np.log(errors), 1)
 p = coeffs[0]
 print("\nEstimated convergence order p =", p)
 
-
 plt.figure()
 plt.loglog(hs, errors, 'o-', label='Error')
 plt.loglog(hs, np.exp(coeffs[1]) * hs**p, '--', label=f'Fit (p={p:.2f})')
