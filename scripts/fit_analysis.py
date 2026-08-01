@@ -12,17 +12,17 @@ EPS_MAX = 0.1
 df = df[(df["amplitude"] >= EPS_MIN) & (df["amplitude"] <= EPS_MAX)]
 results = {}
 
-for shape in df["shape"].unique():
-    sub = df[df["shape"] == shape]
+for s in df["shape"].unique():
+    sub = df[df["shape"] == s]
     if len(sub) < 3:
-        print(f"{shape}: skipped (not enough points)")
+        print(f"{s}: skipped (not enough points)")
         continue
     x = np.log(sub["amplitude"].values)
     y = np.log(sub["delta_lambda1"].values)
     slope, intercept, r, _, _ = linregress(x, y)
     p = slope
     C = np.exp(intercept)
-    results[shape] = (p, r**2)
+    results[s] = (p, r**2)
 
 for shape, (p, r2) in results.items():
     print(f"{shape}")
