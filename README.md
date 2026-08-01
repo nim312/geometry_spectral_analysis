@@ -1,10 +1,10 @@
 # Geometry-Dependent Spectral Sensitivity in Voxelized Laplacian Domains Under Wave-Based Boundary Perturbations
 
-This repository contains the code, geometry files, and data for the paper.
+This repository contains the code, geometry files, and data for the research.
 
 The study examines how the first Dirichlet Laplacian eigenvalue λ₁ responds to controlled sinusoidal boundary perturbations across five three-dimensional geometries, a sphere, cylinder, elliptic prism, cube, and rectangular prism, voxelized on uniform Cartesian grids.
 
-
+This repository is permanently archived in this Zenodo DOI:  
 ## Dependencies
 
 All code is written in Python 3. The following libraries are required:
@@ -15,24 +15,20 @@ scipy
 trimesh
 matplotlib
 pandas
-math
-time
-csv
-gc
-os
-json
 ```
 
 Install them with:
 
 ```bash
-pip install numpy scipy trimesh matplotlib pandas math time csv gc os json
+pip install numpy scipy trimesh matplotlib pandas
 ```
----
 
 ## Reproducing the Results
 
-### Step 1 — Voxelize the STL meshes
+### Step 1 — Creating the geometries
+Make 5 copies of each of the 3D shapes in Blender, with amplitudes 0.01, 0.02, 0.05, 0.08, and 0.10. Create the waves using Geometry Nodes. 
+
+### Step 2 — Voxelize the STL meshes
 
 ```bash
 python voxelize_25.py
@@ -41,7 +37,7 @@ python voxelize_20.py
 
 This reads each STL file, voxelizes it on a uniform N×N×N Cartesian grid using center-based occupancy (trimesh.contains), and saves the binary occupancy masks. The main dataset uses resolution N=25.
 
-### Step 2 — Compute eigenvalues
+### Step 3 — Compute eigenvalues
 
 ```bash
 python dataset_25.py
@@ -50,7 +46,7 @@ python dataset_20.py
 
 This builds the Laplacian for each voxelized domain and computes the smallest eigenvalue λ₁ using scipy.sparse.linalg.eigsh. 
 
-### Step 3 — Convergence study
+### Step 4 — Convergence study
 
 ```bash
 python convergence_cube.py
