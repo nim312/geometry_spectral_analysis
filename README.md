@@ -25,10 +25,10 @@ pip install numpy scipy trimesh matplotlib pandas
 
 ## Reproducing the Results
 
-### Step 1 — Creating the geometries
+### Step 1  Creating the geometries
 Make 5 copies of each of the 3D shapes in Blender, with amplitudes 0.01, 0.02, 0.05, 0.08, and 0.10. Create the waves using Geometry Nodes. 
 
-### Step 2 — Voxelize the STL meshes
+### Step 2  Voxelize the STL meshes
 
 ```bash
 python voxelize_25.py
@@ -37,7 +37,7 @@ python voxelize_20.py
 
 This reads each STL file, voxelizes it on a uniform N×N×N Cartesian grid using center-based occupancy (trimesh.contains), and saves the binary occupancy masks. The main dataset uses resolution N=25.
 
-### Step 3 — Compute eigenvalues
+### Step 3  Compute eigenvalues
 
 ```bash
 python dataset_25.py
@@ -46,7 +46,7 @@ python dataset_20.py
 
 This builds the Laplacian for each voxelized domain and computes the smallest eigenvalue λ₁ using scipy.sparse.linalg.eigsh. 
 
-### Step 4 — Convergence study
+### Step 4  Convergence study
 
 ```bash
 python convergence_cube.py
@@ -54,7 +54,7 @@ python convergence_cube.py
 
 This runs the unperturbed cube at N = 20, 25, and 30 and computes the error relative to the exact value 3π² ≈ 29.609, confirming second-order convergence.
 
-### Step 5 — Scaling and fit analysis
+### Step 5  Scaling and fit analysis
 
 ```bash
 python scaling_plot.py
