@@ -4,7 +4,7 @@ This repository contains the code, geometry files, and data for the research.
 
 The study examines how the first Dirichlet Laplacian eigenvalue λ₁ responds to controlled sinusoidal boundary perturbations across five three-dimensional geometries, a sphere, cylinder, elliptic prism, cube, and rectangular prism, voxelized on uniform Cartesian grids.
 
-This repository is permanently archived in this Zenodo DOI:  
+This repository is permanently archived in this Zenodo DOI:  upon publication
 ## Dependencies
 
 All code is written in Python 3. The following libraries are required:
@@ -26,7 +26,7 @@ pip install numpy scipy trimesh matplotlib pandas
 ## Reproducing the Results
 
 ### Step 1  Creating the geometries
-Make 5 copies of each of the 3D shapes in Blender, with amplitudes 0.01, 0.02, 0.05, 0.08, and 0.10. Create the waves using Geometry Nodes. 
+Make 6 copies of each of the 3D shapes in Blender, with amplitudes 0.00, 0.01, 0.02, 0.05, 0.08, and 0.10. Create the waves using Geometry Nodes, which uses the equation δ(x,y) = ε[sin(2πx) + sin(2πy)]. Export each geometry as an STL file, but this step can be skipped by using the files in the stl folder. 
 
 ### Step 2  Voxelize the STL meshes
 
@@ -44,7 +44,7 @@ python dataset_25.py
 python dataset_20.py
 ```
 
-This builds the Laplacian for each voxelized domain and computes the smallest eigenvalue λ₁ using scipy.sparse.linalg.eigsh. 
+This builds the Laplacian for each voxelized domain and computes the smallest eigenvalue λ₁ using scipy.sparse.linalg.eigsh. It puts the data into descriptors_20.csv and descriptors_25.csv.
 
 ### Step 4  Convergence study
 
